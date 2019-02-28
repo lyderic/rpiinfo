@@ -13,22 +13,31 @@ import (
 	"github.com/lyderic/tools"
 )
 
+func init() {
+	if os.Getenv("RPIINFO_DEBUG") == "on" {
+		dbg = true
+	}
+	debug("*** RPIINFO DEBUG MODE ON ***\n")
+}
+
 func main() {
-	flag.BoolVar(&headers, "headers", false, "show headers")
-	flag.BoolVar(&dbg, "debug", false, "show debugging information")
+	for idx,_ := range commands {
+		debug("adding command: %#v ...\n", commands[idx])
+		flag.BoolVar(&commands[idx].Execute, commands[idx].Letter, false, commands[idx].Description)
+	}
 	flag.Usage = usage
 	flag.Parse()
-	debug("*** DEBUG MODE ON ***\n")
 	getInformation()
-	if len(flag.Args()) == 0 {
+	debug("GATHERED: %#v\n", information)
+	if len(os.Args) == 1 {
+		debug("no os flag found\n")
 		fmt.Println(information)
 		return
 	}
-	for _, arg := range flag.Args() {
-		if command, ok := found(arg); ok {
+	for _, command := range commands {
+		debug("%v\n", command)
+		if command.Execute {
 			command.Action()
-		} else {
-			tools.PrintColorf(tools.RED, "%q: command not found!\n", arg)
 		}
 	}
 }

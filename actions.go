@@ -11,7 +11,15 @@ func model() {
 }
 
 func temperature() {
+	fmt.Println(information.Celsius, information.Farenheit)
+}
+
+func celsius() {
 	fmt.Println(information.Celsius)
+}
+
+func farenheit() {
+	fmt.Println(information.Farenheit)
 }
 
 func networking() {
