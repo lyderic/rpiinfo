@@ -10,8 +10,8 @@ main() {
 	GOOS=linux GOARCH=arm go install
 	if [ $? -eq 0 ] ; then
 		scp ${utility} ${RASPBERRY_PI}:bin
+		ssh ${RASPBERRY_PI} /home/pi/bin/rpiinfo
 	fi
-	ssh ${RASPBERRY_PI} /home/pi/bin/rpiinfo
 }
 
 usage() {

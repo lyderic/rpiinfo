@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"strconv"
@@ -14,78 +13,46 @@ import (
 	"github.com/lyderic/tools"
 )
 
-type Information struct {
-	Hostname   string
-	Model      string
-	Celsius    string
-	Farenheit  string
-	Networking []NIC
-}
-
-type NIC struct {
-	Name      string
-	IpAddress string
-	State     string
-}
-
-const (
-	VERSION       = "0.0.3"
-	//MODEL_FILE    = "/proc/device-tree/model"
-	MODEL_FILE    = "/sys/firmware/devicetree/base/model"
-	CPU_TEMP_FILE = "/sys/class/thermal/thermal_zone0/temp"
-)
-
-var (
-	showHostname    bool
-	showModel       bool
-	showTemperature bool
-	showCelsius     bool
-	showFarenheit   bool
-	showNetworking  bool
-	showAll         bool
-)
-
 func main() {
-	flag.BoolVar(&showHostname, "h", false, "show hostname")
-	flag.BoolVar(&showModel, "m", false, "show Rasperry Pi model")
-	flag.BoolVar(&showTemperature, "t", false, "show temperature")
-	flag.BoolVar(&showCelsius, "c", false, "show temperature (celsius only)")
-	flag.BoolVar(&showFarenheit, "f", false, "show temperature (farenheit only)")
-	flag.BoolVar(&showNetworking, "n", false, "show networking")
-	flag.BoolVar(&showAll, "a", false, "show all information")
+	flag.BoolVar(&headers, "headers", false, "show headers")
+	flag.BoolVar(&dbg, "debug", false, "show debugging information")
 	flag.Usage = usage
 	flag.Parse()
-	information := getInformation()
-	if len(os.Args) == 1 || showAll {
+	debug("*** DEBUG MODE ON ***\n")
+	getInformation()
+	if len(flag.Args()) == 0 {
 		fmt.Println(information)
 		return
 	}
-	if showHostname {
-		fmt.Println(information.Hostname)
-	}
-	if showModel {
-		fmt.Println(information.Model)
-	}
-	if showTemperature {
-		fmt.Println(information.Celsius, information.Farenheit)
-	}
-	if showCelsius {
-		fmt.Println(information.Celsius)
-	}
-	if showFarenheit {
-		fmt.Println(information.Farenheit)
-	}
-	if showNetworking {
-		fmt.Println(displayNetworking(information.Networking))
+	for _, arg := range flag.Args() {
+		if command, ok := found(arg); ok {
+			command.Action()
+		} else {
+			tools.PrintColorf(tools.RED, "%q: command not found!\n", arg)
+		}
 	}
 }
 
-func getInformation() (i Information) {
-	i.Hostname = getHostname()
-	i.Model = getModel()
-	i.Celsius = getCelsius()
-	i.Farenheit = getFarenheit()
-	i.Networking = getNetworking()
+func found(arg string) (command Command, ok bool) {
+	idx := 0
+	for idx, command = range commands {
+		if command.Letter == arg || command.Name == arg {
+			debug("Command %#v found at index %d\n", command, idx)
+			ok = true
+			return
+		}
+	}
+	ok = false
+	return
+}
+
+func getInformation() {
+	debug("Gathering information from system ...\n")
+	information.Hostname = getHostname()
+	information.Model = getModel()
+	information.Celsius = getCelsius()
+	information.Farenheit = getFarenheit()
+	information.Networking = getNetworking()
 	return
 }
 
@@ -100,7 +67,7 @@ func getHostname() (hostname string) {
 func getModel() (model string) {
 	model, err := getFileString(MODEL_FILE)
 	if err != nil {
-		tools.PrintColorf(tools.RED, "Cannot get model. Are you sure you are running this on a Raspberry Pi? %s\n", err)
+		tools.PrintColorf(tools.RED, "%s\nCannot get model. Are you sure you are running this on a Raspberry Pi?\n", err)
 	}
 	return
 }
@@ -157,49 +124,4 @@ func getNICs() (nics []NIC, err error) {
 		}
 	}
 	return
-}
-
-func getFileString(f string) (s string, err error) {
-	if _, err = os.Stat(f); os.IsNotExist(err) {
-		return
-	}
-	content, err := ioutil.ReadFile(f)
-	if err != nil {
-		return
-	}
-	s = strings.TrimSpace(string(content))
-	return
-}
-
-func usage() {
-	fmt.Printf("rpi-info v.%s (c) Lyderic Landry, London 2019\n", VERSION)
-	fmt.Println("Usage: rpi-info <flags>")
-	flag.PrintDefaults()
-}
-
-func (information Information) String() string {
-	var buffer strings.Builder
-	buffer.WriteString(fmt.Sprintf("%-12.12s: %s\n", "Hostname", information.Hostname))
-	buffer.WriteString(fmt.Sprintf("%-12.12s: %s\n", "Model", information.Model))
-	buffer.WriteString(fmt.Sprintf("%-12.12s: %s %s\n", "Temperature", information.Celsius, information.Farenheit))
-	buffer.WriteString(fmt.Sprintf("%-12.12s:\n", "Networking"))
-	buffer.WriteString(displayNetworking(information.Networking))
-	return buffer.String()
-}
-
-func displayNetworking(networking []NIC) (output string) {
-	var buffer strings.Builder
-	buffer.WriteString(fmt.Sprintf(" %-8.8s %-8.8s %s\n", "Name", "State", "IP Address"))
-	buffer.WriteString(fmt.Sprintf(" %-8.8s %-8.8s %s\n", "----", "-----", "----------"))
-	for idx, nic := range networking {
-		buffer.WriteString(nic.String())
-		if idx != len(networking)-1 {
-			buffer.WriteString("\n")
-		}
-	}
-	return buffer.String()
-}
-
-func (nic NIC) String() string {
-	return fmt.Sprintf(" %-8.8s %-8.8s %s", nic.Name, nic.State, nic.IpAddress)
 }
