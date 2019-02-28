@@ -2,7 +2,11 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"strconv"
 	"strings"
+
+	"github.com/lyderic/tools"
 )
 
 type Information struct {
@@ -21,4 +25,43 @@ func (information Information) String() string {
 	buffer.WriteString(fmt.Sprintf("%-12.12s:\n", "Networking"))
 	buffer.WriteString(displayNetworking(information.Networking))
 	return buffer.String()
+}
+
+func getHostname() (hostname string) {
+	hostname, err := os.Hostname()
+	if err != nil {
+		tools.PrintColorf(tools.RED, "Cannot get hostname! %s\n", err)
+	}
+	return
+}
+
+func getModel() (model string) {
+	model, err := getFileString(MODEL_FILE)
+	if err != nil {
+		tools.PrintColorf(tools.RED, "%s\nCannot get model. Are you sure you are running this on a Raspberry Pi?\n", err)
+	}
+	return
+}
+
+func getCelsius() (celsius string) {
+	return fmt.Sprintf("%.1f\u00b0C", getCelsiusTemperature())
+}
+
+func getFarenheit() (farenheit string) {
+	return fmt.Sprintf("%.1f\u00b0F", (getCelsiusTemperature()*1.8)+32)
+}
+
+func getCelsiusTemperature() (celsius float64) {
+	rawtemperature, err := getFileString(CPU_TEMP_FILE)
+	if err != nil {
+		tools.PrintColorf(tools.RED, "%s\nCannot get CPU temperature! Are you sure you are running this on a Raspberry Pi?\n", err)
+		return
+	}
+	kcelsius, err := strconv.ParseFloat(rawtemperature, 64)
+	if err != nil {
+		tools.PrintColorf(tools.RED, "Cannot parse raw temperature from %q: %s\n", CPU_TEMP_FILE, rawtemperature)
+		return
+	}
+	celsius = kcelsius / 1000
+	return
 }
