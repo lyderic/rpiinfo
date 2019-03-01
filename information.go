@@ -40,6 +40,12 @@ func getModel() (model string) {
 	if err != nil {
 		tools.PrintColorf(tools.RED, "%s\nCannot get model. Are you sure you are running this on a Raspberry Pi?\n", err)
 	}
+	// There is an extra byte (00), that can be show like this, at the end of MODEL_FILE:
+	// $ hexdump -C MODEL_FILE
+	// We need to get rid of it
+	if model[len(model)-1] == 0 {
+		model = model[:len(model)-1]
+	}
 	return
 }
 
