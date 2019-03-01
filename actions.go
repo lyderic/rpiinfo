@@ -23,11 +23,11 @@ func farenheit() {
 }
 
 func networking() {
-	soon("networking")
+	fmt.Println(displayNetworking(information.Networking))
 }
 
 func dump() {
-	soon("json")
+	fmt.Println(getJsonDump())
 }
 
 func soon(action string) {
