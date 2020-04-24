@@ -7,7 +7,7 @@ main() {
 		usage
 	fi
 	utility=${HOME}/go/bin/linux_arm/rpiinfo
-	GOOS=linux GOARCH=arm go install
+	GOBIN=$HOME/go/bin GOOS=linux GOARCH=arm go install
 	if [ $? -eq 0 ] ; then
 		scp ${utility} ${RASPBERRY_PI}:bin
 		ssh ${RASPBERRY_PI} /home/pi/bin/rpiinfo
